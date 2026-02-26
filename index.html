@@ -42,7 +42,7 @@
             <h2 style="color: gold; font-size: 0.8rem; margin: 0;">السكريبتات</h2>
         </div>
         <div id="file-list"></div>
-        <div style="font-size: 10px; color: #444; text-align: center; margin-top: auto;">محرك ياما - إصدار القواعد السحابية</div>
+        <div style="font-size: 10px; color: #444; text-align: center; margin-top: auto;">محرك ياما - سلطان المبتكر 🚀</div>
     </div>
 
     <script>
@@ -50,19 +50,19 @@
         var files = JSON.parse(localStorage.getItem('yama_files')) || [{name: 'main.yama', content: '// ابدأ البرمجة يا سلطان\n'}];
         var activeFileIdx = 0;
 
-        // --- نظام القواعد العالمي (السحابي) ---
+        // --- نظام القواعد السحابي المربوط بمستودعك ---
         function loadCloudRules() {
-            // ملاحظة: ضع هنا رابط ملف الـ JS الخاص بك الذي يحتوي على الأوامر
-            const cloudURL = "https://raw.githubusercontent.com/YOUR_USER/YOUR_REPO/main/rules.js";
+            // تم تحديث الرابط برابط الـ Raw الخاص بملف rules.js في حسابك
+            const cloudURL = "https://raw.githubusercontent.com/st425gf-source/yama-editor/main/rules.js";
 
             fetch(cloudURL)
                 .then(r => r.text())
                 .then(code => {
                     eval(code); 
-                    console.log("تم تحديث القواعد من السحابة!");
+                    console.log("السحابة اشتغلت يا سلطان! تم تحميل القواعد.");
                 })
                 .catch(e => {
-                    // قواعد افتراضية في حال عدم وجود إنترنت أو خطأ بالرابط
+                    // قواعد احتياطية
                     window.اطبع = function(txt) {
                         const area = document.getElementById('preview-area');
                         area.innerHTML += `<div><b>←</b> ${txt}</div>`;
