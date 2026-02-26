@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <title>محرر ياما الذكي - المبتكر سلطان</title>
@@ -11,18 +11,57 @@
         #h-resizer { height: 6px; cursor: row-resize; background: #222; border-top: 1px solid gold; }
         #preview-area { height: 200px; background: #fff; color: #000; padding: 15px; overflow: auto; position: relative; font-family: monospace; }
         #preview-area::before { content: "مخرجات المشروع"; position: absolute; top: 0; left: 0; background: gold; color: black; font-size: 11px; padding: 2px 8px; font-weight: bold; }
-        #sidebar { width: 260px; background: #111; display: flex; flex-direction: column; gap: 10px; border-left: 1px solid #333; padding: 15px; box-sizing: border-box; }
+        #sidebar { width: 260px; background: #111; display: flex; flex-direction: column; gap: 10px; border-right: 1px solid #333; padding: 15px; box-sizing: border-box; }
         #resizer { width: 5px; cursor: col-resize; background: #222; }
         .section-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; padding-bottom: 5px; }
-        .icon-btn { background: none; border: 1px solid #444; color: gold; cursor: pointer; padding: 4px 8px; border-radius: 4px; font-weight: bold; }
+        .icon-btn { background: none; border: 1px solid #444; color: gold; cursor: pointer; padding: 4px 8px; border-radius: 4px; font-weight: bold; margin-left: 5px; }
         #file-list { display: flex; flex-direction: column; gap: 4px; overflow-y: auto; flex-grow: 1; }
         .file-item { background: #1a1a1a; padding: 8px; border: 1px solid #333; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
         .file-item.active { border-color: gold; }
         .file-item input { background: transparent; border: none; color: gold; width: 70%; outline: none; }
         #error-log { color: #ff6b6b; font-size: 12px; padding: 10px; background: #1a0000; display: none; }
+        
+        /* تصميم صفحة إدارة الملفات */
+        #file-manager-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; display: none; flex-direction: column; padding: 50px; box-sizing: border-box; }
+        .fm-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid gold; padding-bottom: 20px; margin-bottom: 20px; }
+        .fm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 20px; overflow-y: auto; }
+        .fm-card { background: #222; padding: 15px; border-radius: 10px; text-align: center; border: 1px solid #444; position: relative; }
+        .fm-card:hover { border-color: gold; }
+        .fm-card input { background: #111; border: 1px solid #333; color: white; width: 90%; text-align: center; margin-top: 10px; border-radius: 4px; }
+        .del-btn { color: #ff6b6b; cursor: pointer; font-size: 12px; margin-top: 10px; display: block; }
     </style>
 </head>
 <body>
+
+    <div id="file-manager-overlay">
+        <div class="fm-header">
+            <h1>📁 عنوان الملفات</h1>
+            <div>
+                <button class="icon-btn" style="font-size: 24px;" onclick="document.getElementById('device-upload').click()">+</button>
+                <button class="icon-btn" onclick="toggleFileManager()">إغلاق ✖</button>
+            </div>
+        </div>
+        <input type="file" id="device-upload" style="display: none;" onchange="handleDeviceUpload(this)">
+        <div id="fm-grid" class="fm-grid"></div>
+    </div>
+
+    <div id="sidebar">
+        <div class="section-header">
+            <div class="header-controls">
+                <button onclick="addNewFile()" class="icon-btn" title="ملف برمجي جديد">+</button>
+                <button onclick="toggleFileManager()" class="icon-btn" title="إدارة ملفات الجهاز">📁</button>
+                <button id="run-stop-btn" onclick="toggleRun()" class="icon-btn">▶</button>
+            </div>
+            <h2 style="color: gold; font-size: 0.8rem; margin: 0;">السكريبتات</h2>
+        </div>
+        <div id="file-list"></div>
+        <div style="font-size: 11px; color: #888; text-align: center; margin-top: auto; padding: 10px; border-top: 1px solid #222;">
+            هذا المحرر مخصص للتدريب دون النشر<br>
+            <span style="color: gold;">محرك ياما - سلطان المبتكر 🚀</span>
+        </div>
+    </div>
+
+    <div id="resizer"></div>
 
     <div id="left-side">
         <div id="editor-container"></div>
@@ -31,48 +70,24 @@
         <div id="preview-area"></div>
     </div>
 
-    <div id="resizer"></div>
-
-    <div id="sidebar">
-        <div class="section-header">
-            <div class="header-controls">
-                <button onclick="addNewFile()" class="icon-btn">+</button>
-                <button id="run-stop-btn" onclick="toggleRun()" class="icon-btn">▶</button>
-            </div>
-            <h2 style="color: gold; font-size: 0.8rem; margin: 0;">السكريبتات</h2>
-        </div>
-        <div id="file-list"></div>
-        <div style="font-size: 10px; color: #444; text-align: center; margin-top: auto;">محرك ياما - سلطان المبتكر 🚀</div>
-    </div>
-
     <script>
         var editor;
         var files = JSON.parse(localStorage.getItem('yama_files')) || [{name: 'main.yama', content: '// ابدأ البرمجة يا سلطان\n'}];
+        var deviceFiles = JSON.parse(localStorage.getItem('yama_device_files')) || [];
         var activeFileIdx = 0;
 
-        // --- نظام القواعد السحابي المربوط بمستودعك ---
         function loadCloudRules() {
-            // تم تحديث الرابط برابط الـ Raw الخاص بملف rules.js في حسابك
             const cloudURL = "https://raw.githubusercontent.com/st425gf-source/yama-editor/main/rules.js";
-
-            fetch(cloudURL)
-                .then(r => r.text())
-                .then(code => {
-                    eval(code); 
-                    console.log("السحابة اشتغلت يا سلطان! تم تحميل القواعد.");
-                })
-                .catch(e => {
-                    // قواعد احتياطية
-                    window.اطبع = function(txt) {
-                        const area = document.getElementById('preview-area');
-                        area.innerHTML += `<div><b>←</b> ${txt}</div>`;
-                        area.scrollTop = area.scrollHeight;
-                    };
-                });
+            fetch(cloudURL).then(r => r.text()).then(code => { eval(code); console.log("السحابة اشتغلت!"); }).catch(e => {
+                window.اطبع = function(txt) {
+                    const area = document.getElementById('preview-area');
+                    area.innerHTML += `<div><b>←</b> ${txt}</div>`;
+                    area.scrollTop = area.scrollHeight;
+                };
+            });
         }
         loadCloudRules();
 
-        // --- إعداد المحرر Monaco ---
         require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
         require(['vs/editor/editor.main'], function() {
             editor = monaco.editor.create(document.getElementById('editor-container'), {
@@ -85,15 +100,14 @@
         function toggleRun() {
             document.getElementById('preview-area').innerHTML = "";
             document.getElementById('error-log').style.display = 'none';
-            try { 
-                eval(files.map(f => f.content).join('\n')); 
-            } catch(e) { 
+            try { eval(files.map(f => f.content).join('\n')); } catch(e) {
                 const log = document.getElementById('error-log');
                 log.style.display = 'block';
                 log.innerText = "⚠️ خطأ: " + e.message;
             }
         }
 
+        // إدارة الملفات البرمجية
         function renderFiles() {
             const list = document.getElementById('file-list');
             list.innerHTML = '';
@@ -106,16 +120,53 @@
             });
         }
 
+        // إدارة ملفات الجهاز (الصفحة المستقلة)
+        function toggleFileManager() {
+            const overlay = document.getElementById('file-manager-overlay');
+            overlay.style.display = overlay.style.display === 'flex' ? 'none' : 'flex';
+            renderDeviceFiles();
+        }
+
+        function handleDeviceUpload(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                deviceFiles.push({ name: file.name, size: (file.size / 1024).toFixed(1) + " KB", type: file.type });
+                saveFiles();
+                renderDeviceFiles();
+            }
+        }
+
+        function renderDeviceFiles() {
+            const grid = document.getElementById('fm-grid');
+            grid.innerHTML = '';
+            deviceFiles.forEach((file, idx) => {
+                const card = document.createElement('div');
+                card.className = 'fm-card';
+                card.innerHTML = `
+                    <div style="font-size: 40px;">📄</div>
+                    <input type="text" value="${file.name}" onchange="renameDeviceFile(${idx}, this.value)">
+                    <small style="color: #666; display:block; margin-top:5px;">${file.size}</small>
+                    <span class="del-btn" onclick="deleteDeviceFile(${idx})">حذف الملف 🗑</span>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function deleteDeviceFile(idx) { deviceFiles.splice(idx, 1); saveFiles(); renderDeviceFiles(); }
+        function renameDeviceFile(idx, newName) { deviceFiles[idx].name = newName; saveFiles(); }
         function addNewFile() { files.push({name: "script" + (files.length+1) + ".yama", content: ""}); saveFiles(); renderFiles(); }
         function deleteFile(idx, e) { e.stopPropagation(); if(files.length > 1) { files.splice(idx, 1); activeFileIdx = 0; editor.setValue(files[0].content); saveFiles(); renderFiles(); } }
         function renameFile(idx, newName) { files[idx].name = newName; saveFiles(); }
-        function saveFiles() { localStorage.setItem('yama_files', JSON.stringify(files)); }
+        function saveFiles() { 
+            localStorage.setItem('yama_files', JSON.stringify(files)); 
+            localStorage.setItem('yama_device_files', JSON.stringify(deviceFiles));
+        }
 
         const resizer = document.getElementById('resizer');
         let isResizing = false;
         resizer.addEventListener('mousedown', () => isResizing = true);
         document.addEventListener('mousemove', (e) => {
-            if (isResizing) { document.getElementById('sidebar').style.width = (window.innerWidth - e.clientX) + 'px'; editor.layout(); }
+            if (isResizing) { document.getElementById('sidebar').style.width = e.clientX + 'px'; editor.layout(); }
         });
         document.addEventListener('mouseup', () => isResizing = false);
     </script>
