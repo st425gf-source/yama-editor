@@ -2,7 +2,7 @@
 <html lang="ar">
 <head>
     <meta charset="UTF-8">
-    <title>محرر ياما الذكي - المبتكر سلطان</title>
+    <title>محرر ياما</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
     <style>
         body { margin: 0; padding: 0; display: flex; height: 100vh; background: #0a0a0a; color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
@@ -31,7 +31,7 @@
 
     <div id="file-manager-overlay">
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid gold; padding-bottom: 20px;">
-            <h1 style="margin:0;">📁 عنوان الملفات</h1>
+            <h1 style="margin:0;">📁 الملفات</h1>
             <div>
                 <button class="icon-btn" style="font-size: 20px;" onclick="document.getElementById('device-upload').click()">+</button>
                 <button class="icon-btn" onclick="toggleFileManager()">إغلاق ✖</button>
@@ -64,13 +64,13 @@
 
         <div style="font-size: 10px; color: #666; text-align: center; margin-top: auto; padding-top: 10px; border-top: 1px solid #222;">
             هذا المحرر مخصص للتدريب دون النشر<br>
-            <span style="color: #444;">محرك ياما - سلطان المبتكر 🚀</span>
+            <span style="color: #444;">محرك ياما  🚀</span>
         </div>
     </div>
 
     <script>
         var editor;
-        var files = JSON.parse(localStorage.getItem('yama_files')) || [{name: 'main.yama', content: '// ابدأ البرمجة يا سلطان\n'}];
+        var files = JSON.parse(localStorage.getItem('yama_files')) || [{name: 'main.yama', content: '// ابدأ البرمجة \n'}];
         var deviceFiles = JSON.parse(localStorage.getItem('yama_device_files')) || []; // ملفات الجهاز
         var activeFileIdx = 0;
 
@@ -80,7 +80,7 @@
                 .then(r => r.text())
                 .then(code => {
                     eval(code); 
-                    console.log("السحابة اشتغلت يا سلطان!");
+                    console.log("!");
                 })
                 .catch(e => {
                     window.اطبع = function(txt) {
@@ -177,3 +177,4 @@
     </script>
 </body>
 </html>
+
