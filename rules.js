@@ -1,10 +1,10 @@
-// --- محرك ياما السحابي - المبتكر سلطان ---
+// --- محرك ياما السحابي الشامل - المبتكر سلطان ---
 
 // 1. قاعدة الطباعة
 window.اطبع = function(txt) {
     const area = document.getElementById('preview-area');
     if(area) {
-        area.innerHTML += `<div style="padding:5px; border-bottom:1px solid #eee; color:#333;"><b>←</b> ${txt}</div>`;
+        area.innerHTML += `<div style="padding:5px; border-bottom:1px solid #eee;"><b>←</b> ${txt}</div>`;
         area.scrollTop = area.scrollHeight;
     }
 };
@@ -14,7 +14,7 @@ window.مسح = function() {
     document.getElementById('preview-area').innerHTML = "";
 };
 
-// 3. قاعدة تغيير لون الخلفية
+// 3. قاعدة تغيير لون الخلفية (بدون همزة)
 window.لون_الخلفية = function(color) {
     document.getElementById('preview-area').style.backgroundColor = color;
 };
@@ -24,15 +24,15 @@ window.لون_الخط = function(color) {
     document.getElementById('preview-area').style.color = color;
 };
 
-// 5. قاعدة التنبيه المنبثق
+// 5. قاعدة التنبيه
 window.تنبيه = function(txt) {
-    alert("رسالة من محرك ياما: " + txt);
+    alert(txt);
 };
 
-// 6. قاعدة الوقت الحالي
+// 6. قاعدة الوقت
 window.الوقت = function() {
     const d = new Date();
-    window.اطبع("الوقت الآن هو: " + d.toLocaleTimeString());
+    window.اطبع("الوقت الآن: " + d.toLocaleTimeString());
 };
 
-console.log("🚀 تم تحميل جميع قواعد ياما السحابية بنجاح!");
+console.log("تم تفعيل القواعد بنجاح!");
