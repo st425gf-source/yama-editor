@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <title>محرر ياما الذكي - المبتكر سلطان</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
+    <style>
+        body { margin: 0; padding: 0; display: flex; height: 100vh; background: #0a0a0a; color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
+        #left-side { flex: 1; display: flex; flex-direction: column; min-width: 0; position: relative; }
+        #editor-container { flex: 1; min-height: 0; }
+        #h-resizer { height: 6px; cursor: row-resize; background: #222; border-top: 1px solid gold; }
+        #preview-area { height: 200px; background: #fff; color: #000; padding: 15px; overflow: auto; position: relative; font-family: monospace; }
+        #preview-area::before { content: "مخرجات المشروع"; position: absolute; top: 0; left: 0; background: gold; color: black; font-size: 11px; padding: 2px 8px; font-weight: bold; }
+        #sidebar { width: 260px; background: #111; display: flex; flex-direction: column; gap: 10px; border-left: 1px solid #333; padding: 15px; box-sizing: border-box; }
+        #resizer { width: 5px; cursor: col-resize; background: #222; }
+        .section-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; padding-bottom: 5px; }
+        .icon-btn { background: none; border: 1px solid #444; color: gold; cursor: pointer; padding: 4px 8px; border-radius: 4px; font-weight: bold; }
+        #file-list { display: flex; flex-direction: column; gap: 4px; overflow-y: auto; flex-grow: 1; }
+        .file-item { background: #1a1a1a; padding: 8px; border: 1px solid #333; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+        .file-item.active { border-color: gold; }
+        .file-item input { background: transparent; border: none; color: gold; width: 70%; outline: none; }
+        #error-log { color: #ff6b6b; font-size: 12px; padding: 10px; background: #1a0000; display: none; }
+    </style>
+</head>
+<body>
+
+    <div id="left-side">
+        <div id="editor-container"></div>
+        <div id="error-log"></div>
+        <div id="h-resizer"></div>
+        <div id="preview-area"></div>
+    </div>
+
+    <div id="resizer"></div>
+
+    <div id="sidebar">
+        <div class="section-header">
+            <div class="header-controls">
+                <button onclick="addNewFile()" class="icon-btn">+</button>
+                <button id="run-stop-btn" onclick="toggleRun()" class="icon-btn">▶</button>
+            </div>
+            <h2 style="color: gold; font-size: 0.8rem; margin: 0;">السكريبتات</h2>
+        </div>
+        <div id="file-list"></div>
+        <div style="font-size: 10px; color: #444; text-align: center; margin-top: auto;">محرك ياما - إصدار القواعد السحابية</div>
+    </div>
+
+    <script>
+        var editor;
+        var files = JSON.parse(localStorage.getItem('yama_files')) || [{name: 'main.yama', content: '// ابدأ البرمجة يا سلطان\n'}];
+        var activeFileIdx = 0;
+
+        // --- نظام القواعد العالمي (السحابي) ---
+        function loadCloudRules() {
+            // ملاحظة: ضع هنا رابط ملف الـ JS الخاص بك الذي يحتوي على الأوامر
+            const cloudURL = "https://raw.githubusercontent.com/YOUR_USER/YOUR_REPO/main/rules.js";
+
+            fetch(cloudURL)
+                .then(r => r.text())
+                .then(code => {
+                    eval(code); 
+                    console.log("تم تحديث القواعد من السحابة!");
+                })
+                .catch(e => {
+                    // قواعد افتراضية في حال عدم وجود إنترنت أو خطأ بالرابط
+                    window.اطبع = function(txt) {
+                        const area = document.getElementById('preview-area');
+                        area.innerHTML += `<div><b>←</b> ${txt}</div>`;
+                        area.scrollTop = area.scrollHeight;
+                    };
+                });
+        }
+        loadCloudRules();
+
+        // --- إعداد المحرر Monaco ---
+        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
+        require(['vs/editor/editor.main'], function() {
+            editor = monaco.editor.create(document.getElementById('editor-container'), {
+                value: files[activeFileIdx].content, language: 'javascript', theme: 'vs-dark', fontSize: 16, automaticLayout: true
+            });
+            editor.onDidChangeModelContent(() => { files[activeFileIdx].content = editor.getValue(); saveFiles(); });
+            renderFiles();
+        });
+
+        function toggleRun() {
+            document.getElementById('preview-area').innerHTML = "";
+            document.getElementById('error-log').style.display = 'none';
+            try { 
+                eval(files.map(f => f.content).join('\n')); 
+            } catch(e) { 
+                const log = document.getElementById('error-log');
+                log.style.display = 'block';
+                log.innerText = "⚠️ خطأ: " + e.message;
+            }
+        }
+
+        function renderFiles() {
+            const list = document.getElementById('file-list');
+            list.innerHTML = '';
+            files.forEach((file, idx) => {
+                const item = document.createElement('div');
+                item.className = `file-item ${idx === activeFileIdx ? 'active' : ''}`;
+                item.onclick = () => { activeFileIdx = idx; editor.setValue(files[idx].content); renderFiles(); };
+                item.innerHTML = `<input type="text" value="${file.name}" onchange="renameFile(${idx}, this.value)"><button onclick="deleteFile(${idx}, event)" style="background:none; border:none; color:red; cursor:pointer;">×</button>`;
+                list.appendChild(item);
+            });
+        }
+
+        function addNewFile() { files.push({name: "script" + (files.length+1) + ".yama", content: ""}); saveFiles(); renderFiles(); }
+        function deleteFile(idx, e) { e.stopPropagation(); if(files.length > 1) { files.splice(idx, 1); activeFileIdx = 0; editor.setValue(files[0].content); saveFiles(); renderFiles(); } }
+        function renameFile(idx, newName) { files[idx].name = newName; saveFiles(); }
+        function saveFiles() { localStorage.setItem('yama_files', JSON.stringify(files)); }
+
+        const resizer = document.getElementById('resizer');
+        let isResizing = false;
+        resizer.addEventListener('mousedown', () => isResizing = true);
+        document.addEventListener('mousemove', (e) => {
+            if (isResizing) { document.getElementById('sidebar').style.width = (window.innerWidth - e.clientX) + 'px'; editor.layout(); }
+        });
+        document.addEventListener('mouseup', () => isResizing = false);
+    </script>
+</body>
+</html>
