@@ -25,6 +25,9 @@
         #file-manager-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; display: none; flex-direction: column; padding: 50px; box-sizing: border-box; direction: rtl; }
         .fm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 20px; overflow-y: auto; margin-top: 20px; }
         .fm-card { background: #1a1a1a; padding: 15px; border-radius: 10px; text-align: center; border: 1px solid #333; }
+        
+        /* تنسيق المدخل داخل الشاشة */
+        .yama-input { display: block; width: 90%; border: none; border-bottom: 2px solid gold; background: transparent; outline: none; margin-top: 5px; font-family: monospace; }
     </style>
 </head>
 <body>
@@ -70,23 +73,42 @@
 
     <script>
         var editor;
-        var files = JSON.parse(localStorage.getItem('yama_files')) || [{name: 'main.yama', content: '// ابدأ البرمجة \n'}];
-        var deviceFiles = JSON.parse(localStorage.getItem('yama_device_files')) || []; // ملفات الجهاز
+        var files = JSON.parse(localStorage.getItem('yama_files')) || [{name: 'main.yama', content: 'متغير اسم = اطلب("ما هو اسمك؟");\nاطبع("مرحباً يا " + اسم);'}];
+        var deviceFiles = JSON.parse(localStorage.getItem('yama_device_files')) || [];
         var activeFileIdx = 0;
 
+        // تحميل القواعد من السحاب مع دعم اطلب واطبع
         function loadCloudRules() {
             const cloudURL = "https://raw.githubusercontent.com/st425gf-source/yama-editor/main/rules.js";
             fetch(cloudURL)
                 .then(r => r.text())
                 .then(code => {
                     eval(code); 
-                    console.log("!");
+                    console.log("قواعد ياما جاهزة");
                 })
                 .catch(e => {
+                    // القواعد الاحتياطية في حال فشل السحاب
                     window.اطبع = function(txt) {
                         const area = document.getElementById('preview-area');
                         area.innerHTML += `<div><b>←</b> ${txt}</div>`;
                         area.scrollTop = area.scrollHeight;
+                    };
+                    window.اطلب = function(q) {
+                        return new Promise(resolve => {
+                            const area = document.getElementById('preview-area');
+                            const div = document.createElement('div');
+                            div.innerHTML = `<div><b>${q}</b></div>`;
+                            const input = document.createElement('input');
+                            input.className = 'yama-input';
+                            div.appendChild(input);
+                            area.appendChild(div);
+                            input.focus();
+                            input.onkeydown = (e) => { if(e.key === 'Enter') { 
+                                const val = input.value;
+                                div.innerHTML = `<div>${q}</div><div style="color:gold">> ${val}</div>`;
+                                resolve(val); 
+                            }};
+                        });
                     };
                 });
         }
@@ -101,7 +123,6 @@
             renderFiles();
         });
 
-        // دوال إدارة ملفات الجهاز (الصفحة المنفصلة)
         function toggleFileManager() {
             const overlay = document.getElementById('file-manager-overlay');
             overlay.style.display = overlay.style.display === 'flex' ? 'none' : 'flex';
@@ -137,12 +158,22 @@
         function renameDeviceFile(idx, newName) { deviceFiles[idx].name = newName; saveDeviceFiles(); }
         function saveDeviceFiles() { localStorage.setItem('yama_device_files', JSON.stringify(deviceFiles)); }
 
-        // الدوال الأساسية للمحرر
-        function toggleRun() {
+        // --- دالة التشغيل المحدثة لدعم اطلب والمتغيرات ---
+        async function toggleRun() {
             document.getElementById('preview-area').innerHTML = "";
             document.getElementById('error-log').style.display = 'none';
+            
+            let rawCode = editor.getValue();
+            // ترجمة الكلمات العربية
+            let cleanCode = rawCode
+                .replace(/متغير\s+/g, "var ")
+                .replace(/(?<!await\s)اطلب/g, "await اطلب");
+
             try { 
-                eval(files.map(f => f.content).join('\n')); 
+                // التنفيذ داخل دالة async فورية لضمان عمل الانتظار
+                const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+                const runner = new AsyncFunction('اطبع', 'اطلب', cleanCode);
+                await runner(window.اطبع, window.اطلب);
             } catch(e) { 
                 const log = document.getElementById('error-log');
                 log.style.display = 'block';
@@ -177,4 +208,3 @@
     </script>
 </body>
 </html>
-
