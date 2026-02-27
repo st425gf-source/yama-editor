@@ -1,64 +1,45 @@
-// --- محرك ياما المطور (إدخال داخل الشاشة) ---
-async function executeYama(code) {
-    const out = document.getElementById('preview-area');
-    const err = document.getElementById('error-log');
-    out.innerHTML = ""; 
-    err.style.display = 'none';
+// --- قواعد محرك ياما (قواعد الدروس: اطبع، اطلب، متغير) ---
 
-    // 1. دالة اطبع
-    const اطبع = (txt) => {
-        out.innerHTML += `<div style="margin-bottom:5px;"><b>←</b> ${txt}</div>`;
-        out.scrollTop = out.scrollHeight;
-    };
+// 1. درس "اطبع": لعرض المخرجات في الشاشة البيضاء
+window.اطبع = function(النص) {
+    const شاشة_النتائج = document.getElementById('preview-area');
+    const سطر = document.createElement('div');
+    سطر.style.padding = "2px 0";
+    سطر.innerHTML = `<b>←</b> ${النص}`;
+    شاشة_النتائج.appendChild(سطر);
+    شاشة_النتائج.scrollTop = شاشة_النتائج.scrollHeight;
+};
 
-    // 2. دالة اطلب (تظهر داخل الشاشة وتنتظر الإدخال)
-    const اطلب = (msg) => {
-        return new Promise((resolve) => {
-            // إضافة نص السؤال
-            const container = document.createElement('div');
-            container.style.margin = "10px 0";
-            container.innerHTML = `<span style="color:blue; font-weight:bold;">؟ ${msg}</span><br>`;
-            
-            // إنشاء خانة الإدخال
-            const inputField = document.createElement('input');
-            inputField.type = "text";
-            inputField.style.width = "80%";
-            inputField.style.border = "none";
-            inputField.style.borderBottom = "2px solid blue";
-            inputField.style.outline = "none";
-            inputField.style.padding = "5px";
-            inputField.placeholder = "اكتب هنا واضغط Enter...";
+// 2. درس "اطلب": لطلب مدخلات من المستخدم داخل الشاشة نفسها
+window.اطلب = function(السؤال) {
+    return new Promise((resolve) => {
+        const شاشة_النتائج = document.getElementById('preview-area');
+        const حاوية = document.createElement('div');
+        حاوية.style.margin = "8px 0";
+        حاوية.innerHTML = `<span style="color:#007bff; font-weight:bold;">؟ ${السؤال}</span> `;
+        
+        const مدخل = document.createElement('input');
+        مدخل.type = "text";
+        مدخل.className = "yama-input-style"; // يمكنك تنسيقها في CSS
+        مدخل.style.border = "none";
+        مدخل.style.borderBottom = "2px solid #007bff";
+        مدخل.style.outline = "none";
+        مدخل.style.padding = "2px 5px";
+        
+        حاوية.appendChild(مدخل);
+        شاشة_النتائج.appendChild(حاوية);
+        مدخل.focus();
 
-            container.appendChild(inputField);
-            out.appendChild(container);
-            inputField.focus();
+        // الانتظار حتى يضغط المستخدم Enter
+        مدخل.onkeydown = (e) => {
+            if (e.key === 'Enter') {
+                const القيمة = مدخل.value;
+                حاوية.innerHTML = `<span style="color:#007bff;">؟ ${السؤال}</span> : <b>${القيمة}</b>`;
+                resolve(القيمة);
+            }
+        };
+        شاشة_النتائج.scrollTop = شاشة_النتائج.scrollHeight;
+    });
+};
 
-            // عند الضغط على Enter
-            inputField.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    const value = inputField.value;
-                    // تحويل المدخل لنص ثابت بعد الإدخال
-                    container.innerHTML = `<span style="color:blue;">؟ ${msg}</span> : <b>${value}</b>`;
-                    resolve(value);
-                }
-            });
-            out.scrollTop = out.scrollHeight;
-        });
-    };
-
-    // 3. المترجم
-    let translatedCode = code.replace(/متغير\s+/g, "var ");
-    
-    // إضافة "await" قبل كل "اطلب" لكي ينتظر البرنامج المستخدم
-    translatedCode = translatedCode.replace(/اطلب/g, "await اطلب");
-
-    try {
-        // تنفيذ كود "Async" ليدعم الانتظار
-        const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
-        const runner = new AsyncFunction('اطبع', 'اطلب', translatedCode);
-        await runner(اطبع, اطلب);
-    } catch (e) {
-        err.style.display = 'block';
-        err.innerText = "⚠️ خطأ: " + e.message;
-    }
-}
+// 3. درس "المتغير": يتم معالجته في دالة التشغيل الرئيسية
