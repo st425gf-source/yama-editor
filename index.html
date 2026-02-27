@@ -77,7 +77,6 @@
         var deviceFiles = JSON.parse(localStorage.getItem('yama_device_files')) || [];
         var activeFileIdx = 0;
 
-        // تحميل القواعد من السحاب مع دعم اطلب واطبع
         function loadCloudRules() {
             const cloudURL = "https://raw.githubusercontent.com/st425gf-source/yama-editor/main/rules.js";
             fetch(cloudURL)
@@ -87,7 +86,6 @@
                     console.log("قواعد ياما جاهزة");
                 })
                 .catch(e => {
-                    // القواعد الاحتياطية في حال فشل السحاب
                     window.اطبع = function(txt) {
                         const area = document.getElementById('preview-area');
                         area.innerHTML += `<div><b>←</b> ${txt}</div>`;
@@ -116,9 +114,32 @@
 
         require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
         require(['vs/editor/editor.main'], function() {
-            editor = monaco.editor.create(document.getElementById('editor-container'), {
-                value: files[activeFileIdx].content, language: 'javascript', theme: 'vs-dark', fontSize: 16, automaticLayout: true
+            
+            // --- إضافة نظام التوقعات المخصصة لياما ---
+            monaco.languages.registerCompletionItemProvider('javascript', {
+                provideCompletionItems: function(model, position) {
+                    var suggestions = [
+                        { label: 'اطبع', kind: monaco.languages.CompletionItemKind.Function, insertText: 'اطبع("${1:النص}");', insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet, detail: 'دالة عرض النتائج' },
+                        { label: 'اطلب', kind: monaco.languages.CompletionItemKind.Function, insertText: 'اطلب("${1:السؤال}");', insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet, detail: 'دالة استقبال البيانات' },
+                        { label: 'متغير', kind: monaco.languages.CompletionItemKind.Keyword, insertText: 'متغير ', detail: 'تعريف مساحة تخزين' }
+                    ];
+                    return { suggestions: suggestions };
+                }
             });
+
+            editor = monaco.editor.create(document.getElementById('editor-container'), {
+                value: files[activeFileIdx].content, 
+                language: 'javascript', 
+                theme: 'vs-dark', 
+                fontSize: 16, 
+                automaticLayout: true,
+                suggestOnTriggerCharacters: true,
+                snippetSuggestions: 'top',
+                // تعطيل توقعات لغات البرمجة الافتراضية للتركيز على ياما
+                quickSuggestions: { other: true, comments: false, strings: true },
+                wordBasedSuggestions: false
+            });
+            
             editor.onDidChangeModelContent(() => { files[activeFileIdx].content = editor.getValue(); saveFiles(); });
             renderFiles();
         });
@@ -158,19 +179,12 @@
         function renameDeviceFile(idx, newName) { deviceFiles[idx].name = newName; saveDeviceFiles(); }
         function saveDeviceFiles() { localStorage.setItem('yama_device_files', JSON.stringify(deviceFiles)); }
 
-        // --- دالة التشغيل المحدثة لدعم اطلب والمتغيرات ---
         async function toggleRun() {
             document.getElementById('preview-area').innerHTML = "";
             document.getElementById('error-log').style.display = 'none';
-            
             let rawCode = editor.getValue();
-            // ترجمة الكلمات العربية
-            let cleanCode = rawCode
-                .replace(/متغير\s+/g, "var ")
-                .replace(/(?<!await\s)اطلب/g, "await اطلب");
-
+            let cleanCode = rawCode.replace(/متغير\s+/g, "var ").replace(/(?<!await\s)اطلب/g, "await اطلب");
             try { 
-                // التنفيذ داخل دالة async فورية لضمان عمل الانتظار
                 const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
                 const runner = new AsyncFunction('اطبع', 'اطلب', cleanCode);
                 await runner(window.اطبع, window.اطلب);
